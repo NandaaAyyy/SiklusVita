@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'theme.dart';
 import 'pages/login.dart';
 import 'pages/register.dart';
-import 'pages/dashboard.dart';
+
+
 
 
 void main() async { 
