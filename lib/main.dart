@@ -5,8 +5,8 @@ import 'pages/register.dart';
 import 'pages/dashboard.dart';
 import 'pages/tracker.dart';
 import 'pages/nutrition.dart';
-
-
+import 'pages/article.dart';
+import 'pages/profile.dart';
 
 
 void main() async { 
@@ -29,6 +29,8 @@ class SiklusVitaApp extends StatelessWidget {
         '/dashboard': (_) => const DashboardPage(),
         '/tracker': (_) => const TrackerPage(),
         '/nutrition': (_) => const NutritionPage(),
+        '/articles': (_) => const ArticlesPage(),
+        '/profile': (_) => const ProfilePage(),
         
       },
       debugShowCheckedModeBanner: false,
