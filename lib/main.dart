@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'theme.dart';
 import 'pages/login.dart';
 import 'pages/register.dart';
+import 'pages/dashboard.dart';
+import 'pages/tracker.dart';
+import 'pages/nutrition.dart';
 
 
 
@@ -23,6 +26,10 @@ class SiklusVitaApp extends StatelessWidget {
       routes: {
         '/login': (_) => const LoginPage(),
         '/register': (_) => const RegisterPage(),
+        '/dashboard': (_) => const DashboardPage(),
+        '/tracker': (_) => const TrackerPage(),
+        '/nutrition': (_) => const NutritionPage(),
+        
       },
       debugShowCheckedModeBanner: false,
     );
