@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../db/db_service.dart';
-import '../../model/model_user.dart';
+import '../model/model_user.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

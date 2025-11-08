@@ -1,3 +1,4 @@
+// lib/pages/tracker_page.dart
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../db/db_service.dart';
@@ -11,28 +12,37 @@ class TrackerPage extends StatefulWidget {
 
 class _TrackerPageState extends State<TrackerPage> {
   DateTime _start = DateTime.now();
-  final _lengthCtrl = TextEditingController(text: '28');
-  bool _pcos = false;
-  final _db = DBHelper();
+  final TextEditingController _lengthCtrl = TextEditingController(text: '28');
+  bool _isPCOS = false;
+  final DBHelper _db = DBHelper();
   bool _saving = false;
 
-  Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    final int? userId = prefs.getInt('currentUserId');
-    if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Silakan login terlebih dahulu')));
-      return;
-    }
+  @override
+  void dispose() {
+    _lengthCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveCycle() async {
     setState(() => _saving = true);
     try {
-      final cycle = CycleModel(startDate: _start, length: int.tryParse(_lengthCtrl.text) ?? 28, isPCOS: _pcos);
-      await _db.insertCycle(cycle, userId);
+      final prefs = await SharedPreferences.getInstance();
+      final int? userId = prefs.getInt('currentUserId');
+      if (userId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Silakan login terlebih dahulu')));
+        return;
+      }
+      final length = int.tryParse(_lengthCtrl.text.trim()) ?? 28;
+      final cycle = CycleModel(startDate: _start, length: length, isPCOS: _isPCOS);
+      await _db.insertCycle(userId, cycle);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Siklus tersimpan')));
       Navigator.pop(context);
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: $e')));
     } finally {
-      setState(() => _saving = false);
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -44,18 +54,18 @@ class _TrackerPageState extends State<TrackerPage> {
         padding: const EdgeInsets.all(16),
         child: Column(children: [
           ListTile(
-            title: const Text('Tanggal Mulai'),
+            title: const Text('Tanggal Mulai Siklus'),
             subtitle: Text('${_start.toLocal().toIso8601String().split('T').first}'),
             trailing: IconButton(icon: const Icon(Icons.calendar_today), onPressed: () async {
-              final dt = await showDatePicker(context: context, initialDate: _start, firstDate: DateTime(2015), lastDate: DateTime(2100));
+              final dt = await showDatePicker(context: context, initialDate: _start, firstDate: DateTime(2010), lastDate: DateTime(2100));
               if (dt != null) setState(() => _start = dt);
             }),
           ),
-          const SizedBox(height: 8),
-          TextField(controller: _lengthCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Panjang Siklus (hari)')),
-          SwitchListTile(title: const Text('PCOS Mode'), value: _pcos, onChanged: (v) => setState(() => _pcos = v)),
           const SizedBox(height: 12),
-          _saving ? const CircularProgressIndicator() : ElevatedButton(onPressed: _save, child: const Text('Simpan')),
+          TextField(controller: _lengthCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Panjang Siklus (hari)')),
+          SwitchListTile(title: const Text('PCOS Mode'), value: _isPCOS, onChanged: (v) => setState(() => _isPCOS = v)),
+          const SizedBox(height: 12),
+          _saving ? const CircularProgressIndicator() : SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _saveCycle, child: const Text('Simpan Siklus'))),
         ]),
       ),
     );
