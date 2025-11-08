@@ -6,14 +6,12 @@ class CycleModel {
 
   CycleModel({this.id, required this.startDate, required this.length, this.isPCOS = false});
 
-  factory CycleModel.fromMap(Map<String, dynamic> map) {
-    return CycleModel(
-      id: map['id'] as int?,
-      startDate: DateTime.parse(map['startDate']),
-      length: map['length'] as int,
-      isPCOS: (map['isPCOS'] ?? 0) == 1,
-    );
-  }
+  factory CycleModel.fromMap(Map<String, dynamic> m) => CycleModel(
+        id: m['id'] as int?,
+        startDate: DateTime.parse(m['startDate']),
+        length: m['length'] as int,
+        isPCOS: (m['isPCOS'] ?? 0) == 1,
+      );
 
   Map<String, dynamic> toMap() => {
         'id': id,

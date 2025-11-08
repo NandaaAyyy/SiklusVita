@@ -1,26 +1,25 @@
-import 'dart:async';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
+// lib/db/db_service.dart
 import 'package:sqflite/sqflite.dart';
-import '../model/cycle_model.dart';
+import 'package:path/path.dart';
 import '../model/model_user.dart';
+import '../model/cycle_model.dart';
 
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
   factory DBHelper() => _instance;
   DBHelper._internal();
 
-  static Database? _db;
+  static Database? _database;
 
   Future<Database> get database async {
-    if (_db != null) return _db!;
-    _db = await _initDB('siklusvita.db');
-    return _db!;
+    if (_database != null) return _database!;
+    _database = await _initDB('siklusvita.db');
+    return _database!;
   }
 
   Future<Database> _initDB(String fileName) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final path = join(dir.path, fileName);
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, fileName);
     return await openDatabase(path, version: 1, onCreate: _onCreate);
   }
 
@@ -28,21 +27,23 @@ class DBHelper {
     await db.execute('''
       CREATE TABLE users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        email TEXT UNIQUE,
-        password TEXT
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL
       )
     ''');
+
     await db.execute('''
       CREATE TABLE cycles(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        userId INTEGER,
-        startDate TEXT,
-        length INTEGER,
+        userId INTEGER NOT NULL,
+        startDate TEXT NOT NULL,
+        length INTEGER NOT NULL,
         isPCOS INTEGER DEFAULT 0,
         FOREIGN KEY (userId) REFERENCES users(id)
       )
     ''');
+
     await db.execute('''
       CREATE TABLE articles(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,16 +54,17 @@ class DBHelper {
       )
     ''');
 
-    // insert sample articles
+    // sample article
     await db.insert('articles', {
       'title': 'Mengurangi PMS Secara Alami',
       'summary': 'Tips makanan dan kebiasaan sehat untuk mengurangi PMS.',
-      'content': 'Istirahat, makan bergizi, magnesium, dan olahraga ringan dapat membantu...',
+      'content':
+          'Istirahat cukup, olahraga ringan, asupan magnesium dan vitamin dapat membantu meredakan gejala PMS.',
       'createdAt': DateTime.now().toIso8601String()
     });
   }
 
-  // User CRUD
+  // User operations
   Future<int> insertUser(UserModel user) async {
     final db = await database;
     return await db.insert('users', user.toMap());
@@ -70,20 +72,21 @@ class DBHelper {
 
   Future<UserModel?> getUserByEmail(String email) async {
     final db = await database;
-    final res = await db.query('users', where: 'email = ?', whereArgs: [email]);
+    final res = await db.query('users', where: 'email=?', whereArgs: [email]);
     if (res.isNotEmpty) return UserModel.fromMap(res.first);
     return null;
   }
 
-  Future<UserModel?> getUserById(int id) async {
+  Future<UserModel?> login(String email, String password) async {
     final db = await database;
-    final res = await db.query('users', where: 'id = ?', whereArgs: [id]);
+    final res = await db.query('users',
+        where: 'email=? AND password=?', whereArgs: [email, password]);
     if (res.isNotEmpty) return UserModel.fromMap(res.first);
     return null;
   }
 
-  // cycles
-  Future<int> insertCycle(CycleModel cycle, int userId) async {
+  // Cycle operations
+  Future<int> insertCycle(int userId, CycleModel cycle) async {
     final db = await database;
     return await db.insert('cycles', {
       'userId': userId,
@@ -95,11 +98,12 @@ class DBHelper {
 
   Future<List<CycleModel>> fetchCycles(int userId) async {
     final db = await database;
-    final res = await db.query('cycles', where: 'userId = ?', whereArgs: [userId], orderBy: 'startDate DESC');
+    final res =
+        await db.query('cycles', where: 'userId=?', whereArgs: [userId], orderBy: 'startDate DESC');
     return res.map((e) => CycleModel.fromMap(e)).toList();
   }
 
-  // articles
+  // Articles
   Future<List<Map<String, dynamic>>> fetchArticles() async {
     final db = await database;
     final res = await db.query('articles', orderBy: 'createdAt DESC');

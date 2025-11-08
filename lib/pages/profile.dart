@@ -1,3 +1,4 @@
+// lib/pages/profile_page.dart
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../db/db_service.dart';
@@ -10,28 +11,54 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final _db = DBHelper();
+  final DBHelper _db = DBHelper();
   UserModel? _user;
-  final _nameCtrl = TextEditingController();
   bool _loading = true;
+  final TextEditingController _nameCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _loadUser();
   }
 
-  Future<void> _load() async {
+  Future<void> _loadUser() async {
     final prefs = await SharedPreferences.getInstance();
     final id = prefs.getInt('currentUserId');
-    if (id == null) { Navigator.pushReplacementNamed(context, '/login'); return; }
-    final u = await _db.getUserById(id);
-    setState(() { _user = u; _nameCtrl.text = u?.name ?? ''; _loading = false; });
+    if (id == null) {
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/login');
+      return;
+    }
+    final db = await _db.database;
+    final res = await db.query('users', where: 'id=?', whereArgs: [id]);
+    if (res.isNotEmpty) {
+      _user = UserModel.fromMap(res.first);
+      _nameCtrl.text = _user!.name;
+    }
+    if (mounted) setState(() => _loading = false);
   }
 
-  Future<void> _save() async {
-    // simple update: delete+recreate or implement update query — for simplicity show snackbar
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fitur edit profil sederhana.')));
+  Future<void> _saveName() async {
+    // simple update via raw SQL for brevity
+    if (_user == null) return;
+    final db = await _db.database;
+    await db.update('users', {'name': _nameCtrl.text.trim()}, where: 'id=?', whereArgs: [_user!.id]);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profil disimpan')));
+    await _loadUser();
+  }
+
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('currentUserId');
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -47,13 +74,9 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 12),
           TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Nama')),
           const SizedBox(height: 12),
-          ElevatedButton(onPressed: _save, child: const Text('Simpan')),
+          ElevatedButton(onPressed: _saveName, child: const Text('Simpan')),
           const SizedBox(height: 12),
-          OutlinedButton(onPressed: () async {
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.remove('currentUserId');
-            if (mounted) Navigator.pushReplacementNamed(context, '/login');
-          }, child: const Text('Logout')),
+          OutlinedButton(onPressed: _logout, child: const Text('Logout')),
         ]),
       ),
     );
